@@ -22,7 +22,7 @@
 var argscheck = require('cordova/argscheck'),
     utils = require('cordova/utils'),
     exec = require('cordova/exec');
-   
+
 var Keyboard = function() {
 };
 
@@ -31,6 +31,12 @@ Keyboard.shrinkView = function(shrink, success) {
         exec(success, null, "Keyboard", "shrinkView", [shrink]);
     } else {
         exec(success, null, "Keyboard", "shrinkView", []);
+    }
+};
+
+Keyboard.configDarkMode = function(dark, success) {
+    if (dark !== null && dark !== undefined) {
+        exec(success, null, "Keyboard", "configDarkMode", [dark]);
     }
 };
 

@@ -1,3 +1,7 @@
+/**
+ * Overriding background color and animation
+ */
+
 /*
  Licensed to the Apache Software Foundation (ASF) under one
  or more contributor license agreements.  See the NOTICE file
@@ -43,6 +47,8 @@
 - (void)pluginInitialize
 {
     NSString* setting = nil;
+
+    self.isDarkMode = NO;
 
     setting = @"HideKeyboardFormAccessoryBar";
     if ([self settingForKey:setting]) {
@@ -173,7 +179,17 @@ static IMP WKOriginalImp;
 
     self.webView.scrollView.scrollEnabled = YES;
 
-    CGRect screen = [[[UIApplication sharedApplication] keyWindow] frame];
+    @try {
+        // using theme bg colors
+        if (self.isDarkMode) {
+            // #222222
+            [self.webView.superview setBackgroundColor:[UIColor colorWithRed:0.13 green:0.13 blue:0.13 alpha:1.0]];
+        } else {
+            [self.webView.superview setBackgroundColor:[UIColor whiteColor]];
+        }
+    } @catch (NSException *e) {}
+
+    CGRect screen = [[UIScreen mainScreen] bounds];
     CGRect statusBar = [[UIApplication sharedApplication] statusBarFrame];
     CGRect keyboard = ((NSValue*)notif.userInfo[@"UIKeyboardFrameEndUserInfoKey"]).CGRectValue;
 
@@ -194,13 +210,36 @@ static IMP WKOriginalImp;
     // the case where the user disabled shrinkView while the keyboard is showing.
     // The webview should always be able to return to full size
     CGRect keyboardIntersection = CGRectIntersection(screen, keyboard);
+    CGFloat duration = [notif.userInfo[UIKeyboardAnimationDurationUserInfoKey] floatValue];
+    NSInteger curve = [notif.userInfo[UIKeyboardAnimationCurveUserInfoKey] integerValue];
+
     if (CGRectContainsRect(screen, keyboardIntersection) && !CGRectIsEmpty(keyboardIntersection) && _shrinkView && self.keyboardIsVisible) {
         screen.size.height -= keyboardIntersection.size.height;
         self.webView.scrollView.scrollEnabled = !self.disableScrollingInShrinkView;
-    }
 
-    // A view's frame is in its superview's coordinate system so we need to convert again
-    self.webView.frame = [self.webView.superview convertRect:screen fromView:self.webView];
+        @try {
+            [UIView animateWithDuration:(duration + 0.08) delay:0 options:curve animations:^{
+                self.webView.frame = [self.webView.superview convertRect:screen fromView:self.webView];
+            } completion:^(BOOL finished) {}];
+        } @catch (NSException *e) {
+            self.webView.frame = [self.webView.superview convertRect:screen fromView:self.webView];
+        }
+    } else {
+        // A view's frame is in its superview's coordinate system so we need to convert again
+        if (duration > 0.1) {
+            duration -= 0.1;
+        } else {
+            duration = 0;
+        }
+
+        @try {
+            [UIView animateWithDuration:duration delay:0 options:curve animations:^{
+                self.webView.frame = [self.webView.superview convertRect:screen fromView:self.webView];
+            } completion:^(BOOL finished) {}];
+        } @catch (NSException *e) {
+           self.webView.frame = [self.webView.superview convertRect:screen fromView:self.webView];
+       }
+    }
 }
 
 #pragma mark UIScrollViewDelegate
@@ -228,7 +267,7 @@ static IMP WKOriginalImp;
 
         self.shrinkView = [value boolValue];
     }
-    
+
     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:self.shrinkView]
                                 callbackId:command.callbackId];
 }
@@ -243,7 +282,7 @@ static IMP WKOriginalImp;
 
         self.disableScrollingInShrinkView = [value boolValue];
     }
-    
+
     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:self.disableScrollingInShrinkView]
                                 callbackId:command.callbackId];
 }
@@ -255,10 +294,10 @@ static IMP WKOriginalImp;
         if (!([value isKindOfClass:[NSNumber class]])) {
             value = [NSNumber numberWithBool:NO];
         }
-        
+
         self.hideFormAccessoryBar = [value boolValue];
     }
-    
+
     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:self.hideFormAccessoryBar]
                                 callbackId:command.callbackId];
 }
@@ -266,6 +305,21 @@ static IMP WKOriginalImp;
 - (void)hide:(CDVInvokedUrlCommand*)command
 {
     [self.webView endEditing:YES];
+}
+
+- (void)configDarkMode:(CDVInvokedUrlCommand*)command
+{
+    if (command.arguments.count > 0) {
+        id value = [command.arguments objectAtIndex:0];
+        if (!([value isKindOfClass:[NSNumber class]])) {
+            value = [NSNumber numberWithBool:NO];
+        }
+
+        self.isDarkMode = [value boolValue];
+    }
+
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:self.isDarkMode]
+                                callbackId:command.callbackId];
 }
 
 #pragma mark dealloc

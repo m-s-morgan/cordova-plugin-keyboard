@@ -1,3 +1,7 @@
+/**
+ * Adding dark mode properties
+ */
+
 /*
  Licensed to the Apache Software Foundation (ASF) under one
  or more contributor license agreements.  See the NOTICE file
@@ -30,10 +34,12 @@
 @property (readwrite, assign, nonatomic) BOOL disableScrollingInShrinkView;
 @property (readwrite, assign, nonatomic) BOOL hideFormAccessoryBar;
 @property (readonly, assign, nonatomic) BOOL keyboardIsVisible;
+@property (readwrite, assign, nonatomic) BOOL isDarkMode;
 
 - (void)shrinkView:(CDVInvokedUrlCommand*)command;
 - (void)disableScrollingInShrinkView:(CDVInvokedUrlCommand*)command;
 - (void)hideFormAccessoryBar:(CDVInvokedUrlCommand*)command;
 - (void)hide:(CDVInvokedUrlCommand*)command;
+- (void)configDarkMode:(CDVInvokedUrlCommand*)command;
 
 @end
