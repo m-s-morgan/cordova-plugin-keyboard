@@ -163,6 +163,29 @@ static IMP WKOriginalImp;
     _shrinkView = shrinkView;
 }
 
+/** ProFit MOD
+ * iOS 27 answers the deprecated -[UIApplication statusBarFrame] with CGRectNull (iOS 26 still
+ * answered it), so the status bar height read here became 0 and every keyboard dismissal restored
+ * the web view to the full screen at y = 0, under the status bar, until a rotation had
+ * cordova-plugin-statusbar lay it out again. Read the frame from the window scene instead, the
+ * same way that plugin does, so both agree on the offset.
+ */
+- (CGRect)currentStatusBarFrame
+{
+    UIWindowScene* scene = self.viewController.view.window.windowScene;
+    CGRect statusBarFrame = scene != nil ? scene.statusBarManager.statusBarFrame : CGRectNull;
+
+    if (CGRectIsNull(statusBarFrame)) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        statusBarFrame = [UIApplication sharedApplication].statusBarFrame;
+#pragma clang diagnostic pop
+    }
+
+    return CGRectIsNull(statusBarFrame) ? CGRectZero : statusBarFrame;
+}
+/** */
+
 - (void)shrinkViewKeyboardWillChangeFrame:(NSNotification*)notif
 {
     // No-op on iOS 7.0.  It already resizes webview by default, and this plugin is causing layout issues
@@ -190,7 +213,9 @@ static IMP WKOriginalImp;
     } @catch (NSException *e) {}
 
     CGRect screen = [[UIScreen mainScreen] bounds];
-    CGRect statusBar = [[UIApplication sharedApplication] statusBarFrame];
+    /** ProFit MOD - was [[UIApplication sharedApplication] statusBarFrame] (see currentStatusBarFrame) */
+    CGRect statusBar = [self currentStatusBarFrame];
+    /** */
     CGRect keyboard = ((NSValue*)notif.userInfo[@"UIKeyboardFrameEndUserInfoKey"]).CGRectValue;
 
     // Work within the webview's coordinate system
